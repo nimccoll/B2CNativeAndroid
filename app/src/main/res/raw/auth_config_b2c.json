@@ -1,0 +1,13 @@
+{
+  "client_id" : "68bc4097-ea4a-4bb2-962f-ab5fdb6164ad",
+  "redirect_uri" : "msauth://com.example.firstandroidapp/Bmce%2B9aHdOoVtE7fS3B07tfj7Bc%3D",
+  "account_mode" : "MULTIPLE",
+  "broker_redirect_uri_registered": false,
+  "authorities": [
+    {
+      "type": "B2C",
+      "authority_url": "https://nimccollOrgTenant.b2clogin.com/tfp/nimccollOrgTenant.onmicrosoft.com/B2C_1_SiUpIn/",
+      "default": true
+    }
+  ]
+}
