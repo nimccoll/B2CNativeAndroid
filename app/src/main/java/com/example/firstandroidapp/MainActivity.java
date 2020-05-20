@@ -7,11 +7,14 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
+import android.widget.TextView;
 
 import com.microsoft.identity.client.*;
 import com.microsoft.identity.client.exception.MsalClientException;
 import com.microsoft.identity.client.exception.MsalException;
 import com.microsoft.identity.client.exception.MsalServiceException;
+
+import org.w3c.dom.Text;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -19,6 +22,7 @@ public class MainActivity extends AppCompatActivity {
     private IMultipleAccountPublicClientApplication b2cApp;
     private String[] scopes;
     Button btnSignIn;
+    TextView txtAccessToken;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -33,6 +37,7 @@ public class MainActivity extends AppCompatActivity {
                 onSignInClicked(scopes);
             }
         });
+        txtAccessToken = (TextView) findViewById(R.id.txtAccessToken);
 
         PublicClientApplication.createMultipleAccountPublicClientApplication(this.getApplicationContext(),
                 R.raw.auth_config_b2c,
@@ -64,6 +69,7 @@ public class MainActivity extends AppCompatActivity {
             public void onSuccess(IAuthenticationResult authenticationResult) {
                 /* Successfully got a token, use it to call a protected resource */
                 String accessToken = authenticationResult.getAccessToken();
+                txtAccessToken.setText(accessToken);
             }
             @Override
             public void onError(MsalException exception) {
