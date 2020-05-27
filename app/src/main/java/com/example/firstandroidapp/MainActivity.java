@@ -1,3 +1,13 @@
+//===============================================================================
+// Microsoft FastTrack for Azure
+// Azure Active Directory B2C Authentication Samples
+//===============================================================================
+// Copyright © Microsoft Corporation.  All rights reserved.
+// THIS CODE AND INFORMATION IS PROVIDED "AS IS" WITHOUT WARRANTY
+// OF ANY KIND, EITHER EXPRESSED OR IMPLIED, INCLUDING BUT NOT
+// LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND
+// FITNESS FOR A PARTICULAR PURPOSE.
+//===============================================================================
 package com.example.firstandroidapp;
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -14,21 +24,22 @@ import com.microsoft.identity.client.exception.MsalClientException;
 import com.microsoft.identity.client.exception.MsalException;
 import com.microsoft.identity.client.exception.MsalServiceException;
 
-import org.w3c.dom.Text;
+import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
-    private static IPublicClientApplication mPublicClientApp = null;
     private IMultipleAccountPublicClientApplication b2cApp;
     private String[] scopes;
     Button btnSignIn;
-    TextView txtAccessToken;
+    TextView txtErrorMessage;
+    AppSubClass state;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        state = (AppSubClass) getApplicationContext();
         scopes = Constants.SCOPES.split("\\s+");
 
         btnSignIn = (Button) findViewById(R.id.btnSignIn);
@@ -37,20 +48,43 @@ public class MainActivity extends AppCompatActivity {
                 onSignInClicked(scopes);
             }
         });
-        txtAccessToken = (TextView) findViewById(R.id.txtAccessToken);
 
-        PublicClientApplication.createMultipleAccountPublicClientApplication(this.getApplicationContext(),
-                R.raw.auth_config_b2c,
-                new IPublicClientApplication.IMultipleAccountApplicationCreatedListener() {
-                    @Override
-                    public void onCreated(IMultipleAccountPublicClientApplication application) {
-                        b2cApp = application;
-                    }
+        txtErrorMessage = (TextView) findViewById(R.id.txtErrorMessage);
 
-                    @Override
-                    public void onError(MsalException exception) {
-                    }
-                });
+        b2cApp = state.getPublicClient();
+        if (b2cApp == null)
+        {
+            PublicClientApplication.createMultipleAccountPublicClientApplication(this.getApplicationContext(),
+                    R.raw.auth_config_b2c,
+                    new IPublicClientApplication.IMultipleAccountApplicationCreatedListener() {
+                        @Override
+                        public void onCreated(IMultipleAccountPublicClientApplication application) {
+                            b2cApp = application;
+                            state.setPublicClient((b2cApp));
+                            b2cApp.getAccounts(new IPublicClientApplication.LoadAccountsCallback() {
+                                @Override
+                                public void onTaskCompleted(List<IAccount> result) {
+                                    if (result.size() == 1)
+                                    {
+                                        // User is already logged in acquire token silently
+                                        b2cApp.acquireTokenSilentAsync(scopes, result.get(0), Constants.AUTHORITY, getSilentAuthCallback());
+                                    }
+                                }
+
+                                @Override
+                                public void onError(MsalException exception) {
+                                    txtErrorMessage.setText(exception.getMessage());
+                                }
+                            });
+                        }
+
+                        @Override
+                        public void onError(MsalException exception) {
+                            txtErrorMessage.setText(exception.getMessage());
+                        }
+                    });
+        }
+
     }
 
     public Activity getActivity() {
@@ -67,16 +101,19 @@ public class MainActivity extends AppCompatActivity {
         return new AuthenticationCallback() {
             @Override
             public void onSuccess(IAuthenticationResult authenticationResult) {
-                /* Successfully got a token, use it to call a protected resource */
-                String accessToken = authenticationResult.getAccessToken();
-                txtAccessToken.setText(accessToken);
+                /* Successfully got a token, redirect to the authenticated page */
+                state.setAuthResult(authenticationResult);
+                Intent intent =  new Intent(getActivity(), AuthenticatedActivity.class);
+                startActivity(intent);
             }
             @Override
             public void onError(MsalException exception) {
                 if (exception instanceof MsalClientException) {
-                    //And exception from the client (MSAL)
+                    // An exception from the client (MSAL)
+                    txtErrorMessage.setText(exception.getMessage());
                 } else if (exception instanceof MsalServiceException) {
-                    //An exception from the server
+                    // An exception from the server
+                    txtErrorMessage.setText(exception.getMessage());
                 }
             }
             @Override
@@ -84,5 +121,28 @@ public class MainActivity extends AppCompatActivity {
                 /* User canceled the authentication */
             }
         };
+    }
+
+    private SilentAuthenticationCallback getSilentAuthCallback() {
+      return new SilentAuthenticationCallback() {
+          @Override
+          public void onSuccess(IAuthenticationResult authenticationResult) {
+              /* Successfully got a token, redirect to the authenticated page */
+              state.setAuthResult(authenticationResult);
+              Intent intent =  new Intent(getActivity(), AuthenticatedActivity.class);
+              startActivity(intent);
+          }
+
+          @Override
+          public void onError(MsalException exception) {
+              if (exception instanceof MsalClientException) {
+                  // An exception from the client (MSAL)
+                  txtErrorMessage.setText(exception.getMessage());
+              } else if (exception instanceof MsalServiceException) {
+                  // An exception from the server
+                  txtErrorMessage.setText(exception.getMessage());
+              }
+          }
+      };
     }
 }
